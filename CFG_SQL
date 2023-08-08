@@ -1,0 +1,275 @@
+CREATE DATABASE legalfirm;
+
+USE legalfirm;
+
+CREATE TABLE client (
+client_id character(6) NOT NULL,
+client_firstname varchar (20)NOT NULL ,
+client_surname varchar (20)NOT NULL ,
+client_email varchar (50)NOT NULL ,
+client_city varchar (20)NOT NULL ,
+PRIMARY KEY (client_id)
+);
+
+
+CREATE TABLE product (
+client_id character(6)NOT NULL ,
+product_id character (6)NOT NULL ,
+date_purchased date NOT NULL ,
+date_completion date,
+PRIMARY KEY (client_id)
+);
+
+
+CREATE TABLE finance (
+client_id varchar (6)NOT NULL ,
+opening_balance decimal (9,2)NOT NULL ,
+payments_to_date_accu decimal (9,2),
+primary key (client_id)
+);
+
+CREATE TABLE representative (
+solicitor_ref character (6)NOT NULL ,
+solicitor_name varchar (50)NOT NULL ,
+solicitor_email varchar (50)NOT NULL ,
+solicitor_phone varchar (20)NOT NULL ,
+primary key (solicitor_ref)
+);
+
+
+CREATE TABLE reference (
+client_id character(6)NOT NULL ,
+solicitor_ref character (6)NOT NULL ,
+FOREIGN KEY (client_ID)
+REFERENCES client(client_id),
+FOREIGN KEY (solicitor_ref)
+REFERENCES representative (solicitor_ref)
+);
+
+INSERT INTO client
+VALUES
+(123456,'Sarah','Jones','sarah.jones@google.com','London'),
+(123789,'Daniel','Smith','danielsmith12@gmail.com','London'),
+(123987,'Craig','Fields','cfields22@icloud.com','Cardiff'),
+(123564,'Felicity','Rhodes','felicityr@nhs.gov.uk','Swansea'),
+(123159,'Mike','Price','mike.price.2@wales.gov.uk','Birmingham'),
+(123951,'Sasha','Sommers','ssommers@yahoo.com','Manchester'),
+(123357,'Chad','Richardson','chad_rich@gmail.com','Liverpool'),
+(123786,'Vincent','Haynes','HaynesV@me.com','Manchester'),
+(123984,'Mohammad','Locker','MohammadJlocker@outlook.com','London'),
+(123658,'Graham', 'Poole','grahampoole123@icloud.com','London'),
+(123948,'Bob','Rees','bob_rees_67@hotmail.com','Paris');
+
+INSERT INTO product
+VALUES
+(123456,'DIVO01','2021-08-13','2023-01-05'),
+(123789,'DIV001','2021-04-16',NULL),
+(123987,'FINA01','2020-08-01','2021-08-03'),
+(123564,'FINA01','2021-05-05','2023-03-14'),
+(123159,'FINA02','2020-10-19','2022-12-28'),
+(123951,'DIVO01','2020-07-02','2022-08-15'),
+(123357,'DIVO02','2020-06-30',NULL),
+(123786,'FINA01','2021-09-16','2023-05-17'),
+(123984,'FINA01','2020-04-11','2022-07-31'),
+(123658,'DIVO01','2022-09-22',NULL),
+(123948,'DIVO02','2021-11-16','2023-02-23');
+
+INSERT INTO finance
+VALUES
+(123456,699.00,699.00),
+(123789,699.00,699.00),
+(123987,1200.00,1200.00),
+(123564,1200.00,1200.00),
+(123159,3000.00,2651.00),
+(123951,699.00,699.00),
+(123357,3000.00,1569.00),
+(123786,1200.00,1200.00),
+(123984,1200.00,2651.00),
+(123658,699.00,500.00),
+(123948,3000.00,3600.00);
+
+INSERT INTO representative
+VALUES
+('CHDY','Chloe Dywer','chloe.dwyer@legalfirm.com',441656456789),
+('MEHU','Melanie Hugo','melanie.hugo@legalfirm.com',441656456987),
+('PESA','Penny Salter','penny.salter@legalfirm.com',441656456897),
+('JOLA','Jordan Latham','jordan.latham@legalfirm.com',441656456889),
+('DAWA','Daren Wallace','daren.wallace@legalfirm.com',441656456994);
+
+
+INSERT INTO reference
+VALUES
+(123456,'CHDY'),
+(123789,'MEHU'),
+(123987,'PESA'),
+(123564,'JOLA'),
+(123159,'DAWA'),
+(123951,'CHDY'),
+(123357,'MEHU'),
+(123786,'PESA'),
+(123984,'JOLA'),
+(123658,'DAWA'),
+(123948,'CHDY');
+
+
+-- DROP DATABASE legalfirm
+
+-- Select statments to view tables
+
+SELECT *
+FROM client;
+
+SELECT*
+FROM finance;
+
+SELECT *
+FROM product;
+
+SELECT *
+FROM reference;
+
+SELECT * 
+FROM representative;
+
+-- FIND OUT WHICH CLIENTS ARE ASSOCIATED TO CHDY WITH MONEY ON ACCOUNT IN EXCESS OF £1000.
+-- this will use JOIN and HAVING
+
+Select c.client_id, c.client_firstname, c.client_surname, (f.opening_balance - f.payments_to_date_accu) as money_on_account
+FROM client as c
+JOIN  
+finance as f
+ON c.client_id = f.client_id
+HAVING money_on_account >1000;
+
+-- generating the query was fine, but the column naming structure is cumbersome and I will need to think about how to 
+-- minimise errors using simpler naming structure in future - I had a lot of errors on the column names mismatching.
+
+
+-- ON AVERAGE, HOW LONG DOES EACH DIVORCE PRODUCT TAKE TO COMPLETE?
+-- I will use a STORED date FUNCTION to calculate number of days between two dates and will average these and GROUP BY product_id
+
+SELECT product_id, COUNT(product_id), AVG(DATEDIFF(date_completion,date_purchased)) AS AVG_DAYS_COMPLETE
+FROM product
+GROUP BY product_id;
+
+
+-- It took some back and forth adding AVG and COUNT to see the relevant data. I would like to remove the NULL values for the ongoing cases 
+-- and perhaps even offer a side report on how many ongoign cases there are.alter
+
+-- FIND OUT WHICH SOLICITOR HAS CLIENTS WITH A NEGATIVE BALANCE
+-- I will use a SUBQUERY to extract the client ID linked to the solicitor reference
+
+
+SELECT solicitor_ref, client_id
+FROM reference
+WHERE client_id in
+(SELECT client_id 
+FROM finance
+WHERE (opening_balance - payments_to_date_accu)<0);
+
+-- I struggled to get the subquery to work. I managed to run the query to find the negative balances and associated client_id,
+-- but I needed to rejig it to return one column of results to pass to the main query. 
+
+
+-- ** ADVANCED REQUIREMENTS **
+
+-- GENERATE DATA FOR SENDING EMAIL TO LET CLIENTS KNOW THEIR CURRENT BALANCE AND THE NAME AND PHONE NUMBER OF THEIR SOLICITOR FOR QUERIES
+-- to do this I will need the client id, names and email addresses of the clients
+-- the name and phone number of the solicitor
+-- as well as the closing balance 
+-- this will require JOIN on tables CLIENT, FINANCE, REPRESENTATIVE AND REFERENCE
+
+SELECT c.client_id as ClientID, c.client_firstname as Firstname, c.client_surname as Surname, c.client_email as Email, r.solicitor_name as Solicitor, r.solicitor_phone as PhoneNumber, (f.opening_balance - payments_to_date_accu) as balance
+FROM client as c
+LEFT JOIN
+finance as f
+ON c.client_id = f.client_id
+LEFT JOIN
+reference as ref 
+ON c.client_id = ref.client_id
+LEFT JOIN
+representative as r
+ON ref.solicitor_ref = r.solicitor_ref;
+
+
+-- BUILDING ON THIS, WE CAN OFFER DETAILS TO ACCOUNTS TEAM WHERE BALANCES ARE OUTSTANDING OR WHEN A CLIENT IS OWED MONEY TO SETTLE ACCOUNTS, 
+-- ALLOWING THEM TO EMAIL CLIENT 
+-- I will ORDER BY the balance to create priority 
+
+SELECT c.client_id as ClientID, c.client_firstname as Firstname, c.client_surname as Surname, c.client_email as Email, r.solicitor_name as Solicitor, r.solicitor_phone as PhoneNumber, (f.opening_balance - payments_to_date_accu) as balance
+FROM client as c
+LEFT JOIN
+finance as f
+ON c.client_id = f.client_id
+LEFT JOIN
+reference as ref 
+ON c.client_id = ref.client_id
+LEFT JOIN
+representative as r
+ON ref.solicitor_ref = r.solicitor_ref
+WHERE (f.opening_balance - payments_to_date_accu)  <0 
+OR (f.opening_balance - payments_to_date_accu)  >0
+order by balance;
+
+
+-- GENERATE A VIEW FOR THE DEBT RECOVERY TEAM TO KNOW WHICH CLIENTS OWE MONEY AND HOW MUCH. ORDER BY THE HIGHEST VALUE DEBT
+-- Creating a VIEW using a JOIN on two base tables
+
+USE legalfirm;
+
+CREATE OR REPLACE VIEW vw_BalanceOwing 
+AS
+SELECT c.client_id, (f.opening_balance - payments_to_date_accu) as BalanceOwing
+FROM client as c
+LEFT JOIN
+finance as f
+ON c.client_id = f.client_id
+WHERE (f.opening_balance - payments_to_date_accu)  <0;
+
+
+SELECT *
+FROM vw_balanceowing
+ORDER BY balanceowing;
+
+
+-- CREATE A PROCEUDRE TO SHOW ALL CLIENTS OF A SOLICITOR WHERE CLIENT HAS ANY OUTSTANDING MONIES
+
+-- Usng table JOIN to link the solicitor reference to the name, and to the client ID, along with a calculation of monies owing
+
+DELIMITER //
+CREATE PROCEDURE ClientPerSolicitorWBalance (IN solicitorinitials CHAR(4))
+BEGIN
+SELECT c.client_id as ClientID, r.solicitor_name as Solicitor, (f.opening_balance - payments_to_date_accu) as balance
+FROM client as c
+LEFT JOIN
+finance as f
+ON c.client_id = f.client_id
+LEFT JOIN
+reference as ref 
+ON c.client_id = ref.client_id
+LEFT JOIN
+representative as r
+ON ref.solicitor_ref = r.solicitor_ref
+WHERE (f.opening_balance - payments_to_date_accu)  <0 
+AND
+ref.solicitor_ref = solicitorinitials;
+END //
+
+DELIMITER ;
+
+
+-- FIND ALL CLIENTS OF 'CHLOE DWYER' WITH OUTSTANDING BALANCE:
+
+CALL ClientPerSolicitorWBalance ('CHDY');
+
+-- FIND ALL CLIENTS OF JORDAN LATHAM WITH OUTSTANDING BALANCE:
+
+CALL ClientPerSolicitorWBalance ('JOLA');
+
+-- ** Possibilities for expansion**
+-- 1. Adding tables to hold data about client communication preferences; payment preferences; payment history; 
+--    linked clients IDs (where a person has more than one account).
+-- 2. Adding incremental automation to the client IDs for new clients
+-- 3. Creating procedures to send welcome email with solicitor details to clients when they are entered into the system 
+--    (although I do not know what that would entail!)
+
