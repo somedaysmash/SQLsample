@@ -112,7 +112,6 @@ VALUES
 (123948,'CHDY');
 
 
--- DROP DATABASE legalfirm
 
 -- Select statments to view tables
 
@@ -215,7 +214,6 @@ order by balance;
 -- GENERATE A VIEW FOR THE DEBT RECOVERY TEAM TO KNOW WHICH CLIENTS OWE MONEY AND HOW MUCH. ORDER BY THE HIGHEST VALUE DEBT
 -- Creating a VIEW using a JOIN on two base tables
 
-USE legalfirm;
 
 CREATE OR REPLACE VIEW vw_BalanceOwing 
 AS
@@ -234,7 +232,7 @@ ORDER BY balanceowing;
 
 -- CREATE A PROCEUDRE TO SHOW ALL CLIENTS OF A SOLICITOR WHERE CLIENT HAS ANY OUTSTANDING MONIES
 
--- Usng table JOIN to link the solicitor reference to the name, and to the client ID, along with a calculation of monies owing
+-- Using table JOIN to link the solicitor reference to the name, and to the client ID, along with a calculation of monies owing
 
 DELIMITER //
 CREATE PROCEDURE ClientPerSolicitorWBalance (IN solicitorinitials CHAR(4))
