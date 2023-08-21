@@ -112,9 +112,8 @@ VALUES
 (123948,'CHDY');
 
 
-
 -- Select statments to view tables
-
+Use legalfirm;
 SELECT *
 FROM client;
 
@@ -144,16 +143,28 @@ HAVING money_on_account >1000;
 -- minimise errors using simpler naming structure in future - I had a lot of errors on the column names mismatching.
 
 
--- ON AVERAGE, HOW LONG DOES EACH DIVORCE PRODUCT TAKE TO COMPLETE?
--- I will use a STORED date FUNCTION to calculate number of days between two dates and will average these and GROUP BY product_id
+-- HOW LONG IS EACH CASE TAKING FROM START DATE IN DAYS?
+-- I will use a STORED FUNCTION to calculate number of days between the purchase date and today. 
 
-SELECT product_id, COUNT(product_id), AVG(DATEDIFF(date_completion,date_purchased)) AS AVG_DAYS_COMPLETE
-FROM product
-GROUP BY product_id;
+DELIMITER //
+CREATE FUNCTION duration_of_service_to_date(date_purchased date) 
+RETURNS int 
+DETERMINISTIC
+BEGIN
+ DECLARE today DATE;
+  Select current_date()into today;
+  RETURN DATEDIFF(today, date_purchased);
+END 
 
+//
 
--- It took some back and forth adding AVG and COUNT to see the relevant data. I would like to remove the NULL values for the ongoing cases 
--- and perhaps even offer a side report on how many ongoign cases there are.alter
+DELIMITER ;
+
+SELECT client_id, duration_of_service_to_date(date_purchased)
+FROM
+product;
+
+-- I would like to remove the NULL values for the ongoing cases and ideally compare it to an average.
 
 -- FIND OUT WHICH SOLICITOR HAS CLIENTS WITH A NEGATIVE BALANCE
 -- I will use a SUBQUERY to extract the client ID linked to the solicitor reference
@@ -214,6 +225,7 @@ order by balance;
 -- GENERATE A VIEW FOR THE DEBT RECOVERY TEAM TO KNOW WHICH CLIENTS OWE MONEY AND HOW MUCH. ORDER BY THE HIGHEST VALUE DEBT
 -- Creating a VIEW using a JOIN on two base tables
 
+USE legalfirm;
 
 CREATE OR REPLACE VIEW vw_BalanceOwing 
 AS
@@ -232,7 +244,7 @@ ORDER BY balanceowing;
 
 -- CREATE A PROCEUDRE TO SHOW ALL CLIENTS OF A SOLICITOR WHERE CLIENT HAS ANY OUTSTANDING MONIES
 
--- Using table JOIN to link the solicitor reference to the name, and to the client ID, along with a calculation of monies owing
+-- Usng table JOIN to link the solicitor reference to the name, and to the client ID, along with a calculation of monies owing
 
 DELIMITER //
 CREATE PROCEDURE ClientPerSolicitorWBalance (IN solicitorinitials CHAR(4))
