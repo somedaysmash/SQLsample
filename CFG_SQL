@@ -143,6 +143,16 @@ HAVING money_on_account >1000;
 -- minimise errors using simpler naming structure in future - I had a lot of errors on the column names mismatching.
 
 
+-- ON AVERAGE, HOW LONG DOES EACH DIVORCE PRODUCT TAKE TO COMPLETE?
+-- I will use a date FUNCTION to calculate number of days between two dates and will average these and GROUP BY product_id 
+-- and indicate which group is within an arbitrary SLA of 365 days using HAVING.
+
+SELECT product_id, COUNT(product_id), AVG(DATEDIFF(date_completion,date_purchased)) AS AVG_DAYS_COMPLETE
+FROM product
+GROUP BY product_id
+HAVING AVG(DATEDIFF(date_completion,date_purchased)) >365;
+
+
 -- HOW LONG IS EACH CASE TAKING FROM START DATE IN DAYS?
 -- I will use a STORED FUNCTION to calculate number of days between the purchase date and today. 
 
@@ -223,23 +233,30 @@ order by balance;
 
 
 -- GENERATE A VIEW FOR THE DEBT RECOVERY TEAM TO KNOW WHICH CLIENTS OWE MONEY AND HOW MUCH. ORDER BY THE HIGHEST VALUE DEBT
--- Creating a VIEW using a JOIN on two base tables
+-- Creating a VIEW using a JOIN on four base tables
 
-USE legalfirm;
+Use legalfirm;
 
-CREATE OR REPLACE VIEW vw_BalanceOwing 
+CREATE OR REPLACE VIEW vw_DebtorsList 
 AS
-SELECT c.client_id, (f.opening_balance - payments_to_date_accu) as BalanceOwing
+SELECT c.client_id as ClientID, c.client_firstname as Firstname, c.client_surname as Surname, c.client_email as Email, r.solicitor_name as Solicitor, r.solicitor_phone as PhoneNumber, (f.opening_balance - payments_to_date_accu) as balance
 FROM client as c
 LEFT JOIN
 finance as f
 ON c.client_id = f.client_id
-WHERE (f.opening_balance - payments_to_date_accu)  <0;
+LEFT JOIN
+reference as ref 
+ON c.client_id = ref.client_id
+LEFT JOIN
+representative as r
+ON ref.solicitor_ref = r.solicitor_ref
+WHERE (f.opening_balance - payments_to_date_accu)  <0 
+OR (f.opening_balance - payments_to_date_accu)  >0
+order by balance;
 
 
 SELECT *
-FROM vw_balanceowing
-ORDER BY balanceowing;
+FROM vw_DebtorsList;
 
 
 -- CREATE A PROCEUDRE TO SHOW ALL CLIENTS OF A SOLICITOR WHERE CLIENT HAS ANY OUTSTANDING MONIES
